@@ -8,15 +8,26 @@ use std::collections::HashMap;
 use strfmt;
 use clap::Parser;
 use regex::Regex;
+use tree_magic_mini;
+use flate2::bufread::GzDecoder;
 use dns_lookup::lookup_addr;
 use anyhow::{ Context, Result, bail };
 
 
 type Stats = HashMap<String, u32>;
 
-fn process_file(file: &mut impl Read, stats: &mut Stats, pattern: &Regex, key: usize, pedantic: bool, fixed_ips: bool) -> Result<()> {
-    let mut line = String::new();
+
+fn get_reader(file: &mut impl Read) -> Result<Box<dyn BufRead + '_>> {
     let mut reader = BufReader::new(file);
+    if tree_magic_mini::match_u8("application/gzip", reader.fill_buf().context("Could not peek into buffer to check for compression")?) {
+        return Ok(Box::new(BufReader::new(GzDecoder::new(reader))));
+    }
+    Ok(Box::new(reader))
+}
+
+fn process_file(mut file: &mut impl Read, stats: &mut Stats, pattern: &Regex, key: usize, pedantic: bool, fixed_ips: bool) -> Result<()> {
+    let mut line = String::new();
+    let mut reader = get_reader(&mut file).context("Failed getting reader")?;
     let key = key - 1;
 
     loop {
