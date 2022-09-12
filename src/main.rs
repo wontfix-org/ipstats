@@ -19,13 +19,23 @@ type Stats = HashMap<String, u32>;
 
 fn get_reader(file: &mut impl Read) -> Result<Box<dyn BufRead + '_>> {
     let mut reader = BufReader::new(file);
-    if tree_magic_mini::match_u8("application/gzip", reader.fill_buf().context("Could not peek into buffer to check for compression")?) {
+    if tree_magic_mini::match_u8(
+        "application/gzip",
+        reader.fill_buf().context("Could not peek into buffer to check for compression")?,
+    ) {
         return Ok(Box::new(BufReader::new(GzDecoder::new(reader))));
     }
     Ok(Box::new(reader))
 }
 
-fn process_file(mut file: &mut impl Read, stats: &mut Stats, pattern: &Regex, key: usize, pedantic: bool, fixed_ips: bool) -> Result<()> {
+fn process_file(
+    mut file: &mut impl Read,
+    stats: &mut Stats,
+    pattern: &Regex,
+    key: usize,
+    pedantic: bool,
+    fixed_ips: bool,
+) -> Result<()> {
     let mut line = String::new();
     let mut reader = get_reader(&mut file).context("Failed getting reader")?;
     let key = key - 1;
@@ -70,7 +80,13 @@ fn process_file(mut file: &mut impl Read, stats: &mut Stats, pattern: &Regex, ke
     Ok(())
 }
 
-fn print_stats(stats: Stats, max_results: Option<usize>, numeric: bool, threshold: Option<u32>, format: &str) -> Result<()> {
+fn print_stats(
+    stats: Stats,
+    max_results: Option<usize>,
+    numeric: bool,
+    threshold: Option<u32>,
+    format: &str,
+) -> Result<()> {
     // If a threshold is passed, drop all values below threshold
     let mut sorted: Vec<_> = if let Some(threshold) = threshold {
         stats.iter().filter(|v| v.1 > &threshold).collect()
