@@ -15,3 +15,9 @@ regex = "1.6.0"
 strfmt = "0.2.2"
 tree_magic_db = "3.0.0"
 tree_magic_mini = { version = "3.0.3", features = ["with-gpl-data"] }
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+#opt-level = "s"
